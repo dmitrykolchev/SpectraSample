@@ -4,7 +4,6 @@
 #include <windows.h>
 #include <stdio.h>
 #include <math.h>
-#define CG_SHORT_NAMES
 #include <cgate.h>
 #include "deals.h"
 
