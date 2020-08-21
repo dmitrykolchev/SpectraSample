@@ -137,6 +137,7 @@ CG_RESULT MessageCallback(cg_conn_t* conn, cg_listener_t* listener, struct cg_ms
 		default:
 			// Other messages get logged but not handled
 			cg_log_info("Message 0x%X", msg->type);
+			break;
 	}
 
 	// code returns 0, since there were no errors.
