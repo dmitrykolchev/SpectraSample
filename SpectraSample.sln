@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.30406.217
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simple", "Simple\Simple.csproj", "{9C3D6E62-0536-4719-A9B9-5632ABDCA0CB}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ConsoleApplication1", "ConsoleApplication1\ConsoleApplication1.vcxproj", "{CA305526-72D8-4D2A-833B-C87C1BD1EB2D}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GetDeals", "GetDeals\ConsoleApplication1.vcxproj", "{CA305526-72D8-4D2A-833B-C87C1BD1EB2D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
