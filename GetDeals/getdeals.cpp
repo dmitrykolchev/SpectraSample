@@ -106,7 +106,20 @@ void ProcessDealData(const cg_msg_streamdata_t* message)
 		int8_t price_scale;
 		cg_bcd_get(pdeal->price, &price_int, &price_scale);
 		double price = ((double)price_int) / (pow(10.0, price_scale));
-		printf("id_deal: %lld, isin_id: %d, amount: %10lld, price: %10f\n", pdeal->id_deal, pdeal->isin_id, pdeal->xamount, price);
+		printf("| %lld | %d | %10lld | %12.4f | %02d:%02d:%02d.%03d |\n", pdeal->id_deal, pdeal->isin_id, pdeal->xamount, price,
+			pdeal->moment.hour,
+			pdeal->moment.minute,
+			pdeal->moment.second,
+			pdeal->moment.msec);
+	}
+	else if (message->msg_index == heartbeat_index)
+	{
+		heartbeat* phearbeat = (heartbeat*)message->data;
+		//printf("server time: %02d:%02d:%02d.%03d\n", 
+		//	phearbeat->server_time.hour,
+		//	phearbeat->server_time.minute,
+		//	phearbeat->server_time.second,
+		//	phearbeat->server_time.msec);
 	}
 }
 
