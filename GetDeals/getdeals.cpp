@@ -29,17 +29,20 @@ int main()
 	cg_listener_t* listener = nullptr;
 	try
 	{
+		// open environment
 		CheckResult(cg_env_open(environmentSettings));
 
-
+		// create connection
 		CheckResult(cg_conn_new(connectionString, &connection));
 
 		char listenerSettingsWithScheme[4096];
 
+		// build listener settings string
 		strcpy_s(listenerSettingsWithScheme, sizeof(listenerSettingsWithScheme), listenerSettings);
 		strcat_s(listenerSettingsWithScheme, sizeof(listenerSettingsWithScheme), scheme_scheme_string);
 		strcat_s(listenerSettingsWithScheme, sizeof(listenerSettingsWithScheme), ";");
 
+		// create listener with settings specified in listenerSettingsWithScheme
 		CheckResult(cg_lsn_new(connection, listenerSettingsWithScheme, MessageCallback, &revision, &listener));
 
 		while (!done)
@@ -60,7 +63,7 @@ int main()
 				uint32_t result = cg_conn_process(connection, 1, 0);
 				if (result != CG_ERR_OK && result != CG_ERR_TIMEOUT)
 				{
-					log_info("Warning: connection state request failed: %X", result);
+					cg_log_info("Warning: connection state request failed: %X", result);
 				}
 
 				CheckResult(cg_lsn_getstate(listener, &state), true);
@@ -131,76 +134,9 @@ CG_RESULT MessageCallback(cg_conn_t* conn, cg_listener_t* listener, struct cg_ms
 			// data recevied. print data properties (message name, index etc)
 			ProcessDealData((struct cg_msg_streamdata_t*)msg);
 			break;
-		case CG_MSG_P2REPL_ONLINE:
-			// datastream is in ONLINE state
-			log_info("ONLINE");
-			break;
-		case CG_MSG_TN_BEGIN:
-			// next data block is about to be received
-			log_info("TN BEGIN");
-			break;
-		case CG_MSG_TN_COMMIT:
-			// data block finished. data is consistent now
-			log_info("TN COMMIT");
-			break;
-		case CG_MSG_OPEN:
-			// stream is opened, its scheme is available
-			log_info("OPEN");
-			{
-				uint64_t* revision = (uint64_t*)data;
-				// this is how scheme is handled
-				struct cg_scheme_desc_t* schemedesc = 0;
-				*revision = 0;
-				cg_lsn_getscheme(listener, &schemedesc);
-				if (schemedesc != 0)
-				{
-					struct cg_message_desc_t* msgdesc = schemedesc->messages;
-					while (msgdesc)
-					{
-						struct cg_field_desc_t* fielddesc = msgdesc->fields;
-						log_info("Message %s, block size = %d", msgdesc->name, msgdesc->size);
-
-						while (fielddesc)
-						{
-							log_info("\tField %s = %s [size=%d, offset=%d]", fielddesc->name, fielddesc->type, fielddesc->size, fielddesc->offset);
-							fielddesc = fielddesc->next;
-						}
-
-						msgdesc = msgdesc->next;
-					}
-				}
-			}
-			break;
-		case CG_MSG_CLOSE:
-			// Stream is closed, no more data will be received
-			log_info("CLOSE");
-			break;
-		case CG_MSG_P2REPL_LIFENUM:
-			// Stream data scheme's life number was changed.
-			// complete data snapshot re-replication will occur.
-			log_info("Life number changed to: %u, flags: %u",
-				((struct cg_data_lifenum_t*)msg->data)->life_number, ((struct cg_data_lifenum_t*)msg->data)->flags);
-			break;
-		case CG_MSG_P2REPL_CLEARDELETED:
-			{
-				struct cg_data_cleardeleted_t* msg_clear_deleted = (struct cg_data_cleardeleted_t*)msg->data;
-				log_info("Clear deleted table_index: %d, table_rev: %lld.", msg_clear_deleted->table_idx, (long long)msg_clear_deleted->table_rev);
-				if (msg_clear_deleted->table_rev == CG_MAX_REVISON)
-				{
-					log_info("table_index: %d, rev start from 1.", msg_clear_deleted->table_idx);
-				}
-			}
-			break;
-		case CG_MSG_P2REPL_REPLSTATE:
-			// Datastream state is recevied to be used for resume later.
-			// Message content may be stored anywhere as a string
-			// and then used in cg_lsn_open(..) call as value for
-			// parameter "replstate="
-			log_info("Replica state: %s", msg->data);
-			break;
 		default:
 			// Other messages get logged but not handled
-			log_info("Message 0x%X", msg->type);
+			cg_log_info("Message 0x%X", msg->type);
 	}
 
 	// code returns 0, since there were no errors.
@@ -210,7 +146,7 @@ CG_RESULT MessageCallback(cg_conn_t* conn, cg_listener_t* listener, struct cg_ms
 
 BOOL WINAPI InterruptHandler(DWORD reason)
 {
-	printf("----BREAK----\n");
+	printf("Ctrl-C pressed\n");
 	done = true;
 	return TRUE;
 }
