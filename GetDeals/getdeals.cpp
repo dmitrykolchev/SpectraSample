@@ -100,19 +100,90 @@ int main()
 	return 0;
 }
 
-void ProcessDealData(const cg_msg_streamdata_t* message)
+bool initialized = false;
+size_t id_deal_offset;
+size_t isin_id_offset;
+size_t xamount_offset;
+size_t price_offset;
+size_t moment_offset;
+
+void InitializeSchema(cg_listener_t* listener)
+{
+	cg_scheme_desc_t* scheme = nullptr;
+	cg_lsn_getscheme(listener, &scheme);
+	for (cg_message_desc_t* message_desc = scheme->messages; message_desc; message_desc = message_desc->next)
+	{
+		if (strcmp(message_desc->name, "deal") == 0)
+		{
+			for (cg_field_desc_t* field_desc = message_desc->fields; field_desc; field_desc = field_desc->next)
+			{
+				if (strcmp(field_desc->name, "id_deal") == 0) {
+					id_deal_offset = field_desc->offset;
+				}
+				else if (strcmp(field_desc->name, "isin_id") == 0) {
+					isin_id_offset = field_desc->offset;
+				}
+				else if (strcmp(field_desc->name, "xamount") == 0) {
+					xamount_offset = field_desc->offset;
+				}
+				else if (strcmp(field_desc->name, "price") == 0) {
+					price_offset = field_desc->offset;
+				}
+				else if (strcmp(field_desc->name, "moment") == 0) {
+					moment_offset = field_desc->offset;
+				}
+			}
+		}
+	}
+}
+
+void ProcessDealData(cg_listener_t* listener, const cg_msg_streamdata_t* message)
 {
 	if (message->msg_index == deal_index) {
+
+#if 1
+		if (!initialized)
+		{
+			InitializeSchema(listener);
+			initialized = true;
+		}
+		signed long long* id_deal = (signed long long*)((char*)message->data + id_deal_offset);
+		signed int* isin_id = (signed int*)((char*)message->data + isin_id_offset);
+		signed long long* xamount = (signed long long*)((char*)message->data + xamount_offset);
+		void* price_ptr = (char*)message->data + price_offset;
+		cg_time_t* moment = (cg_time_t*)((char*)message->data + moment_offset);
+		int64_t price_int;
+		int8_t price_scale;
+		cg_bcd_get(price_ptr, &price_int, &price_scale);
+		double price = ((double)price_int) / (pow(10.0, price_scale));
+		printf("| %lld | %d | %10lld | %12.4f | %02d:%02d:%02d.%03d |\n",
+			*id_deal,
+			*isin_id,
+			*xamount,
+			price,
+			moment->hour,
+			moment->minute,
+			moment->second,
+			moment->msec);
+
+#elif
+
 		deal* pdeal = (deal*)message->data;
 		int64_t price_int;
 		int8_t price_scale;
 		cg_bcd_get(pdeal->price, &price_int, &price_scale);
 		double price = ((double)price_int) / (pow(10.0, price_scale));
-		printf("| %lld | %d | %10lld | %12.4f | %02d:%02d:%02d.%03d |\n", pdeal->id_deal, pdeal->isin_id, pdeal->xamount, price,
+		printf("| %lld | %d | %10lld | %12.4f | %02d:%02d:%02d.%03d |\n",
+			pdeal->id_deal,
+			pdeal->isin_id,
+			pdeal->xamount,
+			price,
 			pdeal->moment.hour,
 			pdeal->moment.minute,
 			pdeal->moment.second,
 			pdeal->moment.msec);
+#endif
+
 	}
 	else if (message->msg_index == heartbeat_index)
 	{
@@ -129,14 +200,14 @@ CG_RESULT MessageCallback(cg_conn_t* conn, cg_listener_t* listener, struct cg_ms
 {
 	switch (msg->type)
 	{
-		case CG_MSG_STREAM_DATA:
-			// data recevied. print data properties (message name, index etc)
-			ProcessDealData((struct cg_msg_streamdata_t*)msg);
-			break;
-		default:
-			// Other messages get logged but not handled
-			cg_log_info("Message 0x%X", msg->type);
-			break;
+	case CG_MSG_STREAM_DATA:
+		// data recevied. print data properties (message name, index etc)
+		ProcessDealData(listener, (struct cg_msg_streamdata_t*)msg);
+		break;
+	default:
+		// Other messages get logged but not handled
+		cg_log_info("Message 0x%X", msg->type);
+		break;
 	}
 
 	// code returns 0, since there were no errors.
